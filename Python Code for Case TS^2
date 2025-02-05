@@ -1,34 +1,27 @@
 import numpy as np
-import scipy.optimize as opt
+from scipy.optimize import minimize
 
-# Fixed parameters
-c = 20  
-KS2 = 50 
+# Case 1: TS^2 - Tangent space to the sphere
 
-# Function f1 and its derivatives (for S^2)
-def f1(theta, phi):
-    return c * np.sin(theta) * np.cos(phi)
+def K_biort_TS2(theta, phi, c, K_S2):
+    f1 = c * np.sin(theta) * np.cos(phi)
+    grad_f1_sq = c**2 * (np.cos(theta)**2 * np.cos(phi)**2 + np.sin(phi)**2)
+    hessian_f1 = c * np.cos(phi) * (np.cos(theta)**2 - 2 * np.sin(theta))
+    return 0.5 * np.exp(-2 * f1) * (K_S2 - hessian_f1 + grad_f1_sq)
 
-def grad_f1_squared(theta, phi):
-    return c**2 * (np.cos(theta)**2 * np.cos(phi)**2 + np.sin(phi)**2)
+# Function to minimize (find the minimum absolute value of K_biort)
+def min_K_biort_TS2(params):
+    c = params[0]
+    theta_vals = np.linspace(0, np.pi, 100)
+    phi_vals = np.linspace(0, 2*np.pi, 100)
+    theta_grid, phi_grid = np.meshgrid(theta_vals, phi_vals)
+    K_vals = K_biort_TS2(theta_grid, phi_grid, c, 50)  # K_S2 = 50
+    return -np.min(K_vals)  # We want to maximize the minimum, so minimize the negative
 
-def hess_f1(theta, phi):
-    return c * np.cos(phi) * (np.cos(theta)**2 - 2 * np.sin(theta))
+# Initial condition
+init_params = np.array([20])  # c = 20 as initial guess
 
-# Biorthogonal curvature function for TS^2 planes
-def K_biort_TS2(vars):
-    theta, phi = vars
-    f1_val = f1(theta, phi)
-    grad_sq = grad_f1_squared(theta, phi)
-    hess_val = hess_f1(theta, phi)
-    return 0.5 * np.exp(-2 * f1_val) * (KS2 - hess_val + grad_sq)
+# Optimization
+result_TS2 = minimize(min_K_biort_TS2, init_params, method='SLSQP')
 
-# Optimization bounds
-bounds_TS2 = [(0, np.pi), (0, 2 * np.pi)]
-
-# Global optimization with Differential Evolution
-result_de_TS2 = opt.differential_evolution(K_biort_TS2, bounds_TS2, strategy='best1bin', tol=1e-12, maxiter=1000, seed=42)
-
-
-# Print final results
-print("K_biort minimum:", result_de_TS2.fun)
+print("Minimum absolute K_biort:", min_K_TS2)
