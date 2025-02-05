@@ -14,17 +14,30 @@ a_k = np.array([0.9886, -0.9945, -0.1551, 0.0469, 0.0114])  # From TT^2
 b_k = np.array([0.9930,  0.9868,  0.0567, -0.3635, -0.0247])  # From TT^2
 
 # Function to compute K_biort for Mixed Planes considering both sigma and sigma_perp
-def K_biort_Mixed(theta, phi, alpha, c, K_S2, a_k, b_k, C_f):
+def K_biort_Mixed_Symmetric(theta, phi, alpha, c, K_S2, a_k, b_k, C_f):
     f1 = c * np.sin(theta) * np.cos(phi)
     f2 = C_f + sum(a_k[k-1] * np.cos(k * alpha) + b_k[k-1] * np.sin(k * alpha) for k in range(1, N+1))
-    
+
+    # Gradient squared terms
     grad_f1_sq = c**2 * (np.cos(theta)**2 * np.cos(phi)**2 + np.sin(phi)**2)
     grad_f2_sq = sum(k**2 * (a_k[k-1]**2 + b_k[k-1]**2) for k in range(1, N+1))
+
+    # Hessian terms for sigma
+    hessian_f1_sigma = c * np.cos(phi) * (np.cos(theta)**2 - 2 * np.sin(theta))
+    hessian_f2_sigma = sum(k**2 * (-a_k[k-1] * np.cos(k * alpha) - b_k[k-1] * np.sin(k * alpha)) for k in range(1, N+1))
     
-    hessian_f1 = c * np.cos(phi) * (np.cos(theta)**2 - 2 * np.sin(theta))
-    hessian_f2 = sum(k**2 * (-a_k[k-1] * np.cos(k * alpha) - b_k[k-1] * np.sin(k * alpha)) for k in range(1, N+1))
-    
-    return 0.5 * np.exp(-2 * (f1 + f2)) * (K_S2 + grad_f1_sq + grad_f2_sq - hessian_f1 - hessian_f2)
+    # Compute K_biort for sigma
+    K_sigma = 0.5 * np.exp(-2 * (f1 + f2)) * (K_S2 + grad_f1_sq + grad_f2_sq - hessian_f1_sigma - hessian_f2_sigma)
+
+    # Hessian terms for sigma_perp
+    hessian_f1_sigma_perp = -hessian_f1_sigma  # Inversion due to perpendicularity
+    hessian_f2_sigma_perp = -hessian_f2_sigma  # Inversion due to perpendicularity
+
+    # Compute K_biort for sigma_perp
+    K_sigma_perp = 0.5 * np.exp(-2 * (f1 + f2)) * (K_S2 + grad_f1_sq + grad_f2_sq - hessian_f1_sigma_perp - hessian_f2_sigma_perp)
+
+    # Return the minimum of the two
+    return np.minimum(K_sigma, K_sigma_perp)
 
 # Generate 100,000 random test points
 np.random.seed(123)
@@ -32,11 +45,11 @@ theta_test = np.random.uniform(0, np.pi, 100000)
 phi_test = np.random.uniform(0, 2*np.pi, 100000)
 alpha_test = np.random.uniform(0, 2*np.pi, 100000)
 
-# Compute K_biort for Mixed Planes
-K_Mixed_values = K_biort_Mixed(theta_test, phi_test, alpha_test, c, K_S2, a_k, b_k, C_f)
+# Compute K_biort for Mixed Planes considering both sigma and sigma_perp
+K_Mixed_Symmetric_values = K_biort_Mixed_Symmetric(theta_test, phi_test, alpha_test, c, K_S2, a_k, b_k, C_f)
 
-# Find the minimum value of K_biort
-min_K_Mixed = np.min(K_Mixed_values)
+# Find the minimum value of K_biort considering both directions
+min_K_Mixed_Symmetric = np.min(K_Mixed_Symmetric_values)
 
 # Output result
-print("Minimum absolute K_biort for Mixed Planes:", min_K_Mixed)
+print("Minimum absolute K_biort for Mixed Planes (sigma and sigma_perp):", min_K_Mixed_Symmetric)
