@@ -55,9 +55,9 @@ opt_b_k = result_TT2.x[N:2*N]
 opt_C_f = result_TT2.x[2*N]
 min_K_TT2 = -result_TT2.fun
 
-# Final rigorous test: Random sampling of 10,000 points for verification
+# Final rigorous test: Random sampling of 1,000,000 points for verification
 np.random.seed(123)
-alpha_test_points = np.random.uniform(0, 2*np.pi, 10000)
+alpha_test_points = np.random.uniform(0, 2*np.pi, 1000000)
 K_values = K_biort_TT2(alpha_test_points, opt_a_k, opt_b_k, opt_C_f)
 min_K_random_test = np.min(K_values)
 
