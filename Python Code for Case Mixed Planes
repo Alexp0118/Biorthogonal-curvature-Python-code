@@ -39,7 +39,7 @@ def K_biort_Mixed_Symmetric(theta, phi, alpha, c, K_S2, a_k, b_k, C_f):
     # Return the minimum of the two
     return np.minimum(K_sigma, K_sigma_perp)
 
-# Generate 100,000 random test points
+# Generate 1,000,000 random test points
 np.random.seed(123)
 theta_test = np.random.uniform(0, np.pi, 1000000)
 phi_test = np.random.uniform(0, 2*np.pi, 1000000)
