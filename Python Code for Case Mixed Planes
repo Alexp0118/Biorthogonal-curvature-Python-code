@@ -41,9 +41,9 @@ def K_biort_Mixed_Symmetric(theta, phi, alpha, c, K_S2, a_k, b_k, C_f):
 
 # Generate 100,000 random test points
 np.random.seed(123)
-theta_test = np.random.uniform(0, np.pi, 100000)
-phi_test = np.random.uniform(0, 2*np.pi, 100000)
-alpha_test = np.random.uniform(0, 2*np.pi, 100000)
+theta_test = np.random.uniform(0, np.pi, 1000000)
+phi_test = np.random.uniform(0, 2*np.pi, 1000000)
+alpha_test = np.random.uniform(0, 2*np.pi, 1000000)
 
 # Compute K_biort for Mixed Planes considering both sigma and sigma_perp
 K_Mixed_Symmetric_values = K_biort_Mixed_Symmetric(theta_test, phi_test, alpha_test, c, K_S2, a_k, b_k, C_f)
