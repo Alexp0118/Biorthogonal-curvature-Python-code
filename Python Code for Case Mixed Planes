@@ -8,36 +8,28 @@ N = 10
 
 # Fixed optimal parameters from previous optimizations
 c = 20  # From TS^2
-K_S2 = 0  # From TS^2
 C_f = 1.0000000000000062  # From TT^2
 a_k = np.array([1.0, -1.0, -1.0, -1.0, 1.0, 0.99999997, 0.93648921, 0.92257529, 0.48895129, -0.28173738])  # From TT^2
 b_k = np.array([1.0, 1.0, 0.79441745, -1.0, -1.0, 1.0, -1.0, 1.0, -0.29461758, -0.41955585])  # From TT^2
 
 # Function to compute K_biort for Mixed Planes considering both sigma and sigma_perp
-def K_biort_Mixed_Symmetric(theta, phi, alpha, c, K_S2, a_k, b_k, C_f):
+def K_biort_Mixed_Symmetric(theta, phi, alpha, c, a_k, b_k, C_f):
     f1 = c * np.sin(theta) * np.cos(phi)
     f2 = C_f + sum(a_k[k-1] * np.cos(k * alpha) + b_k[k-1] * np.sin(k * alpha) for k in range(1, N+1))
 
-    # Gradient squared terms
-    grad_f1_sq = c**2 * (np.cos(theta)**2 * np.cos(phi)**2 + np.sin(phi)**2)
-    grad_f2_sq = sum(k**2 * (a_k[k-1]**2 + b_k[k-1]**2) for k in range(1, N+1))
+    # Corrected gradient squared terms
+    grad_f1_sq = c**2 * (np.cos(theta)**2 * np.cos(phi)**2 + np.sin(theta)**2 * np.sin(phi)**2)
+    grad_f2_sq = sum(k**2 * (a_k[k-1] * np.sin(k * alpha) - b_k[k-1] * np.cos(k * alpha))**2 for k in range(1, N+1))
 
-    # Hessian terms for sigma
+    # Corrected Hessian terms for sigma
     hessian_f1_sigma = c * np.cos(phi) * (np.cos(theta)**2 - 2 * np.sin(theta))
     hessian_f2_sigma = sum(k**2 * (-a_k[k-1] * np.cos(k * alpha) - b_k[k-1] * np.sin(k * alpha)) for k in range(1, N+1))
-    
-    # Compute K_biort for sigma
-    K_sigma = 0.5 * np.exp(-2 * (f1 + f2)) * (K_S2 + grad_f1_sq + grad_f2_sq - hessian_f1_sigma - hessian_f2_sigma)
 
-    # Hessian terms for sigma_perp
-    hessian_f1_sigma_perp = hessian_f1_sigma  
-    hessian_f2_sigma_perp = hessian_f2_sigma  
+    # Compute K_biort for sigma (excluding K_S2 for mixed planes)
+    K_sigma = 0.5 * np.exp(-2 * (f1 + f2)) * (grad_f1_sq + grad_f2_sq - hessian_f1_sigma - hessian_f2_sigma)
 
-    # Compute K_biort for sigma_perp
-    K_sigma_perp = 0.5 * np.exp(-2 * (f1 + f2)) * (K_S2 + grad_f1_sq + grad_f2_sq - hessian_f1_sigma_perp - hessian_f2_sigma_perp)
-
-    # Return the minimum of the two
-    return np.minimum(K_sigma, K_sigma_perp)
+    # K_biort minimum over sigma and sigma_perp (no sign inversion for Hessian terms)
+    return K_sigma
 
 # Generate 1,000,000 random test points
 np.random.seed(123)
@@ -45,11 +37,12 @@ theta_test = np.random.uniform(0, np.pi, 1000000)
 phi_test = np.random.uniform(0, 2*np.pi, 1000000)
 alpha_test = np.random.uniform(0, 2*np.pi, 1000000)
 
-# Compute K_biort for Mixed Planes considering both sigma and sigma_perp
-K_Mixed_Symmetric_values = K_biort_Mixed_Symmetric(theta_test, phi_test, alpha_test, c, K_S2, a_k, b_k, C_f)
+# Compute K_biort for Mixed Planes
+K_Mixed_Symmetric_values = K_biort_Mixed_Symmetric(theta_test, phi_test, alpha_test, c, a_k, b_k, C_f)
 
 # Find the minimum value of K_biort considering both directions
 min_K_Mixed_Symmetric = np.min(K_Mixed_Symmetric_values)
 
-# Output result
+# Output result with debug information
 print("Minimum absolute K_biort for Mixed Planes (sigma and sigma_perp):", min_K_Mixed_Symmetric)
+print("Range of K_biort values:", np.min(K_Mixed_Symmetric_values), np.max(K_Mixed_Symmetric_values))
