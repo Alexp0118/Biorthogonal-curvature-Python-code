@@ -30,8 +30,8 @@ def K_biort_Mixed_Symmetric(theta, phi, alpha, c, K_S2, a_k, b_k, C_f):
     K_sigma = 0.5 * np.exp(-2 * (f1 + f2)) * (K_S2 + grad_f1_sq + grad_f2_sq - hessian_f1_sigma - hessian_f2_sigma)
 
     # Hessian terms for sigma_perp
-    hessian_f1_sigma_perp = -hessian_f1_sigma  # Inversion due to perpendicularity
-    hessian_f2_sigma_perp = -hessian_f2_sigma  # Inversion due to perpendicularity
+    hessian_f1_sigma_perp = hessian_f1_sigma  
+    hessian_f2_sigma_perp = hessian_f2_sigma  
 
     # Compute K_biort for sigma_perp
     K_sigma_perp = 0.5 * np.exp(-2 * (f1 + f2)) * (K_S2 + grad_f1_sq + grad_f2_sq - hessian_f1_sigma_perp - hessian_f2_sigma_perp)
