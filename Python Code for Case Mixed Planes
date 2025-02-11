@@ -4,14 +4,14 @@ import numpy as np
 np.random.seed(42)
 
 # Number of harmonics
-N = 5
+N = 10
 
 # Fixed optimal parameters from previous optimizations
 c = 20  # From TS^2
-K_S2 = 50  # From TS^2
-C_f = 1.0028  # From TT^2
-a_k = np.array([0.9886, -0.9945, -0.1551, 0.0469, 0.0114])  # From TT^2
-b_k = np.array([0.9930,  0.9868,  0.0567, -0.3635, -0.0247])  # From TT^2
+K_S2 = 0  # From TS^2
+C_f = 1.0000000000000062  # From TT^2
+a_k = np.array([1.0, -1.0, -1.0, -1.0, 1.0, 0.99999997, 0.93648921, 0.92257529, 0.48895129, -0.28173738])  # From TT^2
+b_k = np.array([1.0, 1.0, 0.79441745, -1.0, -1.0, 1.0, -1.0, 1.0, -0.29461758, -0.41955585])  # From TT^2
 
 # Function to compute K_biort for Mixed Planes considering both sigma and sigma_perp
 def K_biort_Mixed_Symmetric(theta, phi, alpha, c, K_S2, a_k, b_k, C_f):
