@@ -1,7 +1,7 @@
 import numpy as np
-from scipy.optimize import minimize
+from scipy.optimize import minimize, differential_evolution
 
-# Case 1: TS^2 - Tangent space to the sphere
+# Definizione della funzione K_biort_TS2 basata sul paper
 
 def K_biort_TS2(theta, phi, c, K_S2):
     f1 = c * np.sin(theta) * np.cos(phi)
@@ -9,19 +9,25 @@ def K_biort_TS2(theta, phi, c, K_S2):
     hessian_f1 = c * np.cos(phi) * (np.cos(theta)**2 - 2 * np.sin(theta))
     return 0.5 * np.exp(-2 * f1) * (K_S2 - hessian_f1 + grad_f1_sq)
 
-# Function to minimize (find the minimum absolute value of K_biort)
-def min_K_biort_TS2(params):
-    c = params[0]
-    theta_vals = np.linspace(0, np.pi, 100)
-    phi_vals = np.linspace(0, 2*np.pi, 100)
+# Funzione obiettivo da minimizzare (troviamo il minimo assoluto di K_biort_TS2)
+def min_K_biort_TS2(_):
+    c = 20  # Valore fisso di c
+    K_S2 = 50  # Valore fisso di K_S2
+    theta_vals = np.linspace(0, np.pi, 300)
+    phi_vals = np.linspace(0, 2 * np.pi, 300)
     theta_grid, phi_grid = np.meshgrid(theta_vals, phi_vals)
-    K_vals = K_biort_TS2(theta_grid, phi_grid, c, 50)  # K_S2 = 50
-    return -np.min(K_vals)  # We want to maximize the minimum, so minimize the negative
+    K_vals = K_biort_TS2(theta_grid, phi_grid, c, K_S2)
+    return -np.min(K_vals)  # Massimizziamo il minimo, quindi minimizziamo il valore negativo
 
-# Initial condition
-init_params = np.array([20])  # c = 20 as initial guess
+# Ottimizzazione globale con Differential Evolution
+bounds = [(0, 1)]  # Dummy bounds, c è fissato
+result_DE = differential_evolution(min_K_biort_TS2, bounds, strategy='best1bin', tol=1e-6)
 
-# Optimization
-result_TS2 = minimize(min_K_biort_TS2, init_params, method='SLSQP')
+# Ottimizzazione locale con SLSQP (inutile per c fisso, ma manteniamo la struttura)
+init_params = np.array([0])  # Dummy input per SLSQP
+result_SLSQP = minimize(min_K_biort_TS2, init_params, method='SLSQP')
 
-print("Minimum absolute K_biort:", min_K_TS2)
+# Stampa dei risultati
+print("Risultati dell'ottimizzazione per TS^2 con c=20 e K_S2=50:")
+print("Minimo K_biort trovato (DE):", -result_DE.fun)
+print("Minimo K_biort trovato (SLSQP):", -result_SLSQP.fun)
