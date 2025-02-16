@@ -11,8 +11,8 @@ def K_biort_TS2(theta, phi, c, K_S2):
 
 # Funzione obiettivo da minimizzare (troviamo il minimo assoluto di K_biort_TS2)
 def min_K_biort_TS2(_):
-    c = 20  # Valore fisso di c
-    K_S2 = 50  # Valore fisso di K_S2
+    c = 0.1  # Valore fisso di c
+    K_S2 = 1  # Valore fisso di K_S2
     theta_vals = np.linspace(0, np.pi, 300)
     phi_vals = np.linspace(0, 2 * np.pi, 300)
     theta_grid, phi_grid = np.meshgrid(theta_vals, phi_vals)
@@ -28,6 +28,6 @@ init_params = np.array([0])  # Dummy input per SLSQP
 result_SLSQP = minimize(min_K_biort_TS2, init_params, method='SLSQP')
 
 # Stampa dei risultati
-print("Risultati dell'ottimizzazione per TS^2 con c=20 e K_S2=50:")
+print("Risultati dell'ottimizzazione per TS^2 con c=0.1 e K_S2=1:")
 print("Minimo K_biort trovato (DE):", -result_DE.fun)
 print("Minimo K_biort trovato (SLSQP):", -result_SLSQP.fun)
