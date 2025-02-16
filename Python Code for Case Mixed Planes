@@ -7,10 +7,12 @@ np.random.seed(42)
 N = 10
 
 # Fixed optimal parameters from previous optimizations
-c = 20  # From TS^2
-C_f = 1.0000000000000062  # From TT^2
-a_k = np.array([1.0, -1.0, -1.0, -1.0, 1.0, 0.99999997, 0.93648921, 0.92257529, 0.48895129, -0.28173738])  # From TT^2
-b_k = np.array([1.0, 1.0, 0.79441745, -1.0, -1.0, 1.0, -1.0, 1.0, -0.29461758, -0.41955585])  # From TT^2
+c = 0.1  # From TS^2
+C_f = 9.851795570935874 # From TT^2
+a_k = np.array([0.89446425, -0.51613401,  0.87145797, -0.58411575, -0.94210068, -0.5326063,
+  0.36370521, -0.1292051,   0.14547634, -0.07570831])  # From TT^2
+b_k = np.array([0.44033276, -0.61823518,  0.89777064, -0.80811324,  0.98383369,  0.41181353,
+-0.24576054,  0.25970842, -0.02000406, -0.30988651])  # From TT^2
 
 # Function to compute K_biort for Mixed Planes considering both sigma and sigma_perp
 def K_biort_Mixed_Symmetric(theta, phi, alpha, c, a_k, b_k, C_f):
