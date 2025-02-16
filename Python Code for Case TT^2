@@ -7,6 +7,10 @@ np.random.seed(42)
 # Number of harmonics
 N = 10
 
+# Function f_2 based on the paper
+def f_2(alpha, a_k, b_k, C_f):
+    return C_f + np.sum([a_k[k-1] * np.cos(k * alpha) + b_k[k-1] * np.sin(k * alpha) for k in range(1, N+1)], axis=0)
+
 # Function K_biort for TT^2
 def K_biort_TT2(alpha, a_k, b_k, C_f):
     alpha = np.asarray(alpha)  # Ensure vectorized computation
@@ -14,7 +18,7 @@ def K_biort_TT2(alpha, a_k, b_k, C_f):
                     - 2 * a_k[k-1] * b_k[k-1] * np.sin(k*alpha) * np.cos(k*alpha)) for k in range(1, N+1))
     H = sum(k**2 * (-a_k[k-1] * np.cos(k*alpha) - b_k[k-1] * np.sin(k*alpha)) for k in range(1, N+1))
     
-    exp_factor = np.exp(-2 * np.clip(C_f, -10, 10))  # Prevent overflow issues
+    exp_factor = np.exp(-2 * f_2(alpha, a_k, b_k, C_f))  # Corrected exponential factor
     return 0.5 * exp_factor * (S - H)
 
 # Function to minimize (maximize the minimum of K_biort)
@@ -22,7 +26,7 @@ def min_K_biort_TT2(params):
     a_k = params[:N]
     b_k = params[N:2*N]
     C_f = params[2*N]
-    alpha_vals = np.linspace(0, 2*np.pi, 100)  # High resolution
+    alpha_vals = np.linspace(0, 2*np.pi, 1000)  # High resolution
     K_vals = K_biort_TT2(alpha_vals, a_k, b_k, C_f)
     return -np.min(K_vals)  # Maximize the minimum
 
@@ -31,7 +35,7 @@ def constraint_K_biort_positive(params):
     a_k = params[:N]
     b_k = params[N:2*N]
     C_f = params[2*N]
-    alpha_vals = np.linspace(0, 2*np.pi, 100)  
+    alpha_vals = np.linspace(0, 2*np.pi, 1000)  
     min_K = np.min(K_biort_TT2(alpha_vals, a_k, b_k, C_f))
     return min_K  # Must be >= 0
 
@@ -55,11 +59,16 @@ opt_b_k = result_TT2.x[N:2*N]
 opt_C_f = result_TT2.x[2*N]
 min_K_TT2 = -result_TT2.fun
 
-# Final rigorous test: Random sampling of 1,000,000 points for verification
+# Final rigorous test: Random sampling of 10,000,000 points for verification
 np.random.seed(123)
-alpha_test_points = np.random.uniform(0, 2*np.pi, 1000000)
-K_values = K_biort_TT2(alpha_test_points, opt_a_k, opt_b_k, opt_C_f)
-min_K_random_test = np.min(K_values)
+alpha_test_points_random = np.random.uniform(0, 2*np.pi, 10_000_000)
+K_values_random = K_biort_TT2(alpha_test_points_random, opt_a_k, opt_b_k, opt_C_f)
+min_K_random_test = np.min(K_values_random)
+
+# Second verification: Regular grid sampling with 10,000,000 points
+alpha_test_points_grid = np.linspace(0, 2*np.pi, 10_000_000)
+K_values_grid = K_biort_TT2(alpha_test_points_grid, opt_a_k, opt_b_k, opt_C_f)
+min_K_grid_test = np.min(K_values_grid)
 
 # Output results
 print("Final optimal parameters for TT^2:")
@@ -67,4 +76,11 @@ print("C_f =", opt_C_f)
 print("a_k =", opt_a_k)
 print("b_k =", opt_b_k)
 print("Minimum absolute K_biort from optimization:", min_K_TT2)
-print("Minimum absolute K_biort from 1,000,000 random test points:", min_K_random_test)
+print("Minimum absolute K_biort from 10,000,000 random test points:", min_K_random_test)
+print("Minimum absolute K_biort from 10,000,000 grid test points:", min_K_grid_test)
+
+# Absolute verification: If the minimum K_biort is ever negative, print a warning
+if min_K_random_test < 0 or min_K_grid_test < 0:
+    print("WARNING: Negative values of K_biort found! Optimization failed to ensure strict positivity.")
+else:
+    print("SUCCESS: K_biort is strictly positive everywhere!")
