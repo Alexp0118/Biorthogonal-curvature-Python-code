@@ -6,8 +6,8 @@ import matplotlib.pyplot as plt
 np.random.seed(42)
 
 #  Parameters
-N = 9  # Number of harmonics
-C_f = 1  # Fixed value of C_f (Try different values)
+N = 2  # Number of harmonics
+C_f = -1  # Fixed value of C_f (Try different values)
 
 #  Deformation function f_2
 def f_2(alpha, a_k, b_k):
