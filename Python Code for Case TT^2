@@ -1,83 +1,95 @@
 import numpy as np
 from scipy.optimize import minimize, differential_evolution
+import matplotlib.pyplot as plt
 
-# Set seed for reproducibility
+#  Set seed for reproducibility
 np.random.seed(42)
 
-# Number of harmonics
-N = 2
-C_f = -1.0  # Fixed value of C_f
+#  Parameters
+N = 9  # Number of harmonics
+C_f = 1  # Fixed value of C_f (Try different values)
 
-# Function f_2 based on the paper
+#  Deformation function f_2
 def f_2(alpha, a_k, b_k):
     return C_f + np.sum([a_k[k-1] * np.cos(k * alpha) + b_k[k-1] * np.sin(k * alpha) for k in range(1, N+1)], axis=0)
 
-# Function K_biort for TT^2
-def K_biort_TT2(alpha, a_k, b_k):
-    alpha = np.asarray(alpha)  # Ensure vectorized computation
+#  Compute S and H separately
+def compute_S_H(alpha, a_k, b_k):
     S = sum(k**2 * (a_k[k-1]**2 * np.sin(k*alpha)**2 + b_k[k-1]**2 * np.cos(k*alpha)**2 
                     - 2 * a_k[k-1] * b_k[k-1] * np.sin(k*alpha) * np.cos(k*alpha)) for k in range(1, N+1))
+    
     H = sum(k**2 * (-a_k[k-1] * np.cos(k*alpha) - b_k[k-1] * np.sin(k*alpha)) for k in range(1, N+1))
     
-    exp_factor = np.exp(-2 * f_2(alpha, a_k, b_k))  # Corrected exponential factor
+    return S, H
+
+#  Biorthogonal curvature function K_biort
+def K_biort_TT2(alpha, a_k, b_k):
+    S, H = compute_S_H(alpha, a_k, b_k)
+    exp_factor = np.exp(-2 * f_2(alpha, a_k, b_k))
     return 0.5 * exp_factor * (S - H)
 
-# Function to minimize (maximize the minimum of K_biort)
+#  Function to minimize (maximize the minimum of K_biort)
 def min_K_biort_TT2(params):
-    a_k = params[:N]
-    b_k = params[N:2*N]
-    alpha_vals = np.linspace(0, 2*np.pi, 1000)  # High resolution
+    a_k, b_k = params[:N], params[N:2*N]
+    alpha_vals = np.linspace(0, 2*np.pi, 1000)
     K_vals = K_biort_TT2(alpha_vals, a_k, b_k)
-    return -np.min(K_vals)  # Maximize the minimum
+    return -np.min(K_vals)  # Negative sign because we want to maximize the minimum
 
-# Constraint to enforce positivity of K_biort
-def constraint_K_biort_positive(params):
-    a_k = params[:N]
-    b_k = params[N:2*N]
-    alpha_vals = np.linspace(0, 2*np.pi, 1000)  
-    min_K = np.min(K_biort_TT2(alpha_vals, a_k, b_k))
-    return min_K  # Must be >= 0
+#  Stricter constraint: Ensure S - H > 0 everywhere
+def constraint_S_minus_H_positive(params):
+    a_k, b_k = params[:N], params[N:2*N]
+    alpha_vals = np.linspace(0, 2*np.pi, 10000)
+    S_vals, H_vals = compute_S_H(alpha_vals, a_k, b_k)
+    return np.min(S_vals - H_vals)  # Ensures positivity of (S - H)
 
-# Initial conditions
+#  Initial conditions
 init_params = np.random.uniform(-1, 1, 2*N)
+bounds = [(-1, 1)] * (2*N)
 
-# Bounds for parameters
-bounds = [(-1, 1)] * (2*N)  # a_k, b_k in [-1,1]
+#  Step 1: Global Optimization with Differential Evolution
+print("🔄 Starting global optimization...")
+result_DE = differential_evolution(min_K_biort_TT2, bounds, strategy='best1bin', tol=1e-6, maxiter=500)
 
-# Step 1: Global optimization with Differential Evolution
-result_DE = differential_evolution(min_K_biort_TT2, bounds, strategy='best1bin', tol=1e-6, maxiter=300)
-
-# Step 2: Local optimization with SLSQP including positivity constraint
-constraints = [{'type': 'ineq', 'fun': constraint_K_biort_positive}]
+#  Step 2: Local Optimization with SLSQP + Constraints
+print("🔍 Refining with SLSQP...")
+constraints = [{'type': 'ineq', 'fun': constraint_S_minus_H_positive}]
 result_TT2 = minimize(min_K_biort_TT2, result_DE.x, method='SLSQP', bounds=bounds, constraints=constraints)
 
-# Extract optimized parameters
-opt_a_k = result_TT2.x[:N]
-opt_b_k = result_TT2.x[N:2*N]
+# 📌 Extract optimized parameters
+opt_a_k, opt_b_k = result_TT2.x[:N], result_TT2.x[N:2*N]
 min_K_TT2 = -result_TT2.fun
 
-# Final rigorous test: Random sampling of 10,000,000 points for verification
-np.random.seed(123)
-alpha_test_points_random = np.random.uniform(0, 2*np.pi, 10_000_000)
-K_values_random = K_biort_TT2(alpha_test_points_random, opt_a_k, opt_b_k)
+# 📌 Compute max K_biort with optimized coefficients
+alpha_vals_range = np.linspace(0, 2*np.pi, 10000)
+K_vals_range = K_biort_TT2(alpha_vals_range, opt_a_k, opt_b_k)
+max_K_TT2 = np.max(K_vals_range)
+
+#  Verify over 10 million points
+print("📊 Verifying on 10 million random points...")
+alpha_test_points = np.random.uniform(0, 2*np.pi, 10_000_000)
+K_values_random = K_biort_TT2(alpha_test_points, opt_a_k, opt_b_k)
 min_K_random_test = np.min(K_values_random)
 
-# Second verification: Regular grid sampling with 10,000,000 points
-alpha_test_points_grid = np.linspace(0, 2*np.pi, 10_000_000)
-K_values_grid = K_biort_TT2(alpha_test_points_grid, opt_a_k, opt_b_k)
-min_K_grid_test = np.min(K_values_grid)
-
-# Output results
-print("Final optimal parameters for TT^2:")
+#  Display results
+print("\n🎯 FINAL RESULTS")
 print("C_f =", C_f)
 print("a_k =", opt_a_k)
 print("b_k =", opt_b_k)
-print("Minimum absolute K_biort from optimization:", min_K_TT2)
-print("Minimum absolute K_biort from 10,000,000 random test points:", min_K_random_test)
-print("Minimum absolute K_biort from 10,000,000 grid test points:", min_K_grid_test)
+print(f"Range of K_biort: [{min_K_TT2}, {max_K_TT2}]")
+print("Minimum K_biort over 10 million points:", min_K_random_test)
 
-# Absolute verification: If the minimum K_biort is ever negative, print a warning
-if min_K_random_test < 0 or min_K_grid_test < 0:
-    print("WARNING: Negative values of K_biort found! Optimization failed to ensure strict positivity.")
-else:
-    print("SUCCESS: K_biort is strictly positive everywhere!")
+#  Early stopping if the solution is not valid
+if min_K_random_test < 0:
+    raise ValueError("❌ ERROR: Negative K_biort found! Optimization failed.")
+
+#  Plot K_biort with min/max indicators
+plt.figure(figsize=(10, 5))
+plt.plot(alpha_vals_range, K_vals_range, label="K_biort(alpha)", color='b')
+plt.axhline(y=min_K_TT2, color='g', linestyle='--', label=f"Min: {min_K_TT2:.4f}")
+plt.axhline(y=max_K_TT2, color='orange', linestyle='--', label=f"Max: {max_K_TT2:.4f}")
+plt.xlabel("α")
+plt.ylabel("K_biort(α)")
+plt.legend()
+plt.title("Biorthogonal Curvature after Optimization")
+plt.grid()
+plt.show()
